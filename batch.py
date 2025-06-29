@@ -5,6 +5,9 @@ import sys
 import pickle
 import os
 import pandas as pd
+import pyarrow.parquet as pq
+from pyarrow.fs import S3FileSystem
+import s3fs
 
 def read_data(filename):
     S3_ENDPOINT_URL = os.getenv('S3_ENDPOINT_URL')
@@ -12,10 +15,32 @@ def read_data(filename):
     if S3_ENDPOINT_URL is not None:
         options = {
             'client_kwargs': {
-                'endpoint_url': S3_ENDPOINT_URL
+                'endpoint_url': S3_ENDPOINT_URL,
+                'aws_access_key_id': 'test',
+                'aws_secret_access_key': 'test',
             }
         }
-        df = pd.read_parquet('s3://nyc-duration/file.parquet', storage_options=options)
+        s3_fs = s3fs.S3FileSystem(
+        client_kwargs={
+            'endpoint_url': S3_ENDPOINT_URL,
+                'aws_access_key_id': 'test',
+                'aws_secret_access_key': 'test'
+        },
+        secret_key='test',
+        access_key='test'
+    )
+        s3fs_instance = S3FileSystem(
+            access_key='test',
+            secret_key='test',
+            endpoint_override=S3_ENDPOINT_URL
+        )
+        # df = pd.read_parquet(filename, storage_options=options)
+        # df = pd.read_parquet(filename, storage_options={'s3fs': s3_fs, 'anon':False})
+        df = pq.ParquetDataset(
+            filename[5:], #this instance wants a path so remove the s3://
+            filesystem=s3fs_instance,
+            # storage_options={"anon":False}
+        ).read_pandas().to_pandas()
     else:
         df = pd.read_parquet(filename)
 
