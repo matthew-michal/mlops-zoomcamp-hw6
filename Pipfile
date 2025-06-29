@@ -10,6 +10,7 @@ pyarrow = "*"
 s3fs = "*"
 localstack = "*"
 awscli = "*"
+boto3 = "*"
 
 [dev-packages]
 pytest = "*"

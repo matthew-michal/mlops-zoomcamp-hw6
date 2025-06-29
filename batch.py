@@ -9,6 +9,14 @@ import pyarrow.parquet as pq
 from pyarrow.fs import S3FileSystem
 import s3fs
 
+
+S3_ENDPOINT_URL = os.getenv('S3_ENDPOINT_URL')
+fs = S3FileSystem(
+    access_key='test',
+    secret_key='test',
+    endpoint_override=S3_ENDPOINT_URL
+)
+
 def read_data(filename):
     S3_ENDPOINT_URL = os.getenv('S3_ENDPOINT_URL')
 
@@ -68,11 +76,13 @@ def get_input_path(year, month):
 def get_output_path(year, month):
     default_output_pattern = 's3://nyc-duration-prediction-alexey/taxi_type=fhv/year={year:04d}/month={month:02d}/predictions.parquet'
     output_pattern = os.getenv('OUTPUT_FILE_PATTERN', default_output_pattern)
+    
     return output_pattern.format(year=year, month=month)
 
 def main(year, month):
     input_file = get_input_path(year, month)
     output_file = get_output_path(year, month)
+    print(output_file)
 
     categorical = ['PULocationID', 'DOLocationID']
 
@@ -98,8 +108,16 @@ def main(year, month):
     df_result['ride_id'] = df['ride_id']
     df_result['predicted_duration'] = y_pred
 
+    df_result.to_parquet(
+        output_file[5:],
+        engine='pyarrow',
+        compression=None,
+        index=False,
+        filesystem=fs
+    )
 
-    df_result.to_parquet(output_file, engine='pyarrow', index=False)
+
+    # df_result.to_parquet(output_file, engine='pyarrow', index=False)
 
 if __name__ == "__main__":
     year = int(sys.argv[1])
